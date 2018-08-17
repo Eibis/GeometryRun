@@ -46,7 +46,7 @@ protected:
 
 private:
 	FVector NewPosition;
-	FRotator Rotation;
+	FRotator InputRotation;
 
 	FCollisionQueryParams QueryParams;
 

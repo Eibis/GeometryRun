@@ -17,7 +17,6 @@ void APlayerPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Rotation = GetActorRotation();
 	QueryParams.AddIgnoredActor(this);
 }
 
@@ -43,13 +42,23 @@ void APlayerPawn::Tick(float DeltaTime)
 
 	if (collided)
 	{
-		Rotation = FRotationMatrix::MakeFromZ(hit.ImpactNormal).Rotator();
+		FRotator rotation = FRotationMatrix::MakeFromZ(hit.ImpactNormal).Rotator();
+
+		FVector relative_up = rotation.Quaternion().GetUpVector();
+
+		FVector direction = InputRotation.Quaternion().GetForwardVector().GetSafeNormal();
+
+		float angle_xy = FMath::Atan2(direction.Y, direction.X) - FMath::Atan2(relative_up.Y, relative_up.X);
+
+		FRotator horizontal_adjustment = FQuat(relative_up, angle_xy).Rotator();
+
+		rotation = UKismetMathLibrary::ComposeRotators(rotation, horizontal_adjustment);
 
 		position = hit.ImpactPoint + GroundOffset;
 
 		DrawDebugSphere(GetWorld(), position, CheckSphereRadius, 12, FColor::Green, false, DeltaTime * 2.0f);
 
-		SetActorLocationAndRotation(position, Rotation);
+		SetActorLocationAndRotation(position, rotation);
 	}
 	else
 		DrawDebugSphere(GetWorld(), position, CheckSphereRadius, 12, FColor::Red, false, DeltaTime * 2.0f);
@@ -96,7 +105,7 @@ void APlayerPawn::HorizontalRotation(float amount)
 	if (FMath::IsNearlyZero(amount))
 		return;
 
-	Rotation.Add(0.0f, RotationSpeed * amount, 0.0f);
+	InputRotation.Add(0.0f, RotationSpeed * amount, 0.0f);
 
 	bToMove = true;
 }
